@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Practical 7: Authentication & Middleware Pipeline - 24CS038</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header with Student & Course Details -->
+    <header class="header">
+      <div class="header-main">
+        <h1>Practical 7: Authentication and Middleware Pipeline</h1>
+        <p class="subtitle">ITUE301: Advance Web Development Framework | Express.js, JWT, bcryptjs, Mongoose</p>
+      </div>
+      <div class="student-badge">
+        <span class="badge-label">Student ID:</span>
+        <span class="badge-value" id="student-roll">24CS038</span>
+        <span class="badge-label">Name:</span>
+        <span class="badge-value" id="student-name">Daksh Karangiya</span>
+      </div>
+    </header>
+
+    <!-- Notification Bar -->
+    <div id="alert-box" class="alert hidden"></div>
+
+    <main class="grid-layout">
+      <!-- Left Column: Auth & User Session -->
+      <div class="col left-col">
+        <!-- Auth Section: Register & Login -->
+        <section class="card" id="auth-section">
+          <div class="card-tabs">
+            <button id="tab-login-btn" class="tab-btn active" onclick="switchAuthTab('login')">Login</button>
+            <button id="tab-register-btn" class="tab-btn" onclick="switchAuthTab('register')">Register</button>
+          </div>
+
+          <!-- Login Form -->
+          <form id="login-form" class="auth-form" onsubmit="handleLogin(event)">
+            <h3>Account Login</h3>
+            <div class="form-group">
+              <label for="login-email">Email Address:</label>
+              <input type="email" id="login-email" value="24cs038@charusat.edu.in" required placeholder="user@example.com">
+            </div>
+            <div class="form-group">
+              <label for="login-password">Password:</label>
+              <input type="password" id="login-password" value="password123" required placeholder="Enter password">
+            </div>
+            <button type="submit" class="btn btn-primary" id="btn-login">Login & Get JWT Token</button>
+          </form>
+
+          <!-- Register Form -->
+          <form id="register-form" class="auth-form hidden" onsubmit="handleRegister(event)">
+            <h3>Create New Account</h3>
+            <div class="form-group">
+              <label for="reg-name">Full Name:</label>
+              <input type="text" id="reg-name" value="Daksh Karangiya" required>
+            </div>
+            <div class="form-group">
+              <label for="reg-roll">Student ID / Roll No:</label>
+              <input type="text" id="reg-roll" value="24CS038" required>
+            </div>
+            <div class="form-group">
+              <label for="reg-email">Email Address:</label>
+              <input type="email" id="reg-email" value="24cs038@charusat.edu.in" required placeholder="user@example.com">
+            </div>
+            <div class="form-group">
+              <label for="reg-password">Password (min 6 characters):</label>
+              <input type="password" id="reg-password" value="password123" required placeholder="Choose a password">
+            </div>
+            <button type="submit" class="btn btn-success" id="btn-register">Register (bcrypt Hash)</button>
+          </form>
+        </section>
+
+        <!-- User Profile Session Card (Visible when logged in) -->
+        <section class="card hidden" id="user-profile-section">
+          <div class="card-header">
+            <h3>Logged-in User Profile (/api/auth/me)</h3>
+            <button class="btn btn-danger btn-sm" onclick="handleLogout()" id="btn-logout">Logout</button>
+          </div>
+          <div class="user-info">
+            <p><strong>Name:</strong> <span id="profile-name">-</span></p>
+            <p><strong>Roll No:</strong> <span id="profile-roll" class="highlight-roll">24CS038</span></p>
+            <p><strong>Email:</strong> <span id="profile-email">-</span></p>
+            <p><strong>User ID:</strong> <code id="profile-id">-</code></p>
+            <p><strong>Token Status:</strong> <span class="status-badge active" id="token-status">Active (Valid JWT)</span></p>
+          </div>
+          <div class="token-container">
+            <label><strong>Current JWT Bearer Token:</strong></label>
+            <textarea id="current-token-display" readonly rows="3" class="token-textarea"></textarea>
+          </div>
+        </section>
+
+        <!-- Pipeline Architecture Reference Card -->
+        <section class="card info-card">
+          <h3>Middleware Pipeline Flow</h3>
+          <div class="pipeline-flow">
+            <div class="step-box">Client Request (Authorization: Bearer &lt;token&gt;)</div>
+            <div class="arrow">↓</div>
+            <div class="step-box highlight">Auth Middleware (verifies JWT, sets req.user)</div>
+            <div class="arrow">↓</div>
+            <div class="step-box highlight">Validation Middleware (validates input before DB)</div>
+            <div class="arrow">↓</div>
+            <div class="step-box">Controller (executes Task operations)</div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Right Column: Task Management & Middleware Testing -->
+      <div class="col right-col">
+        <!-- Task Management Card (Protected Route CRUD) -->
+        <section class="card" id="task-manager-section">
+          <h3>Task Management (Protected Route: /api/tasks)</h3>
+          
+          <!-- Create Task Form -->
+          <form id="create-task-form" onsubmit="handleCreateTask(event)" class="task-form">
+            <div class="form-row">
+              <div class="form-group flex-2">
+                <label for="task-title">Task Title <span class="required">*</span>:</label>
+                <input type="text" id="task-title" placeholder="e.g., Complete Practical 7 Report" required>
+              </div>
+              <div class="form-group flex-1">
+                <label for="task-priority">Priority:</label>
+                <select id="task-priority">
+                  <option value="low">Low</option>
+                  <option value="medium" selected>Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="task-desc">Task Description:</label>
+              <textarea id="task-desc" rows="2" placeholder="Implementation of JWT verification and request validation"></textarea>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary" id="btn-add-task">Add Task (Protected POST)</button>
+              <button type="button" class="btn btn-secondary" onclick="simulateEmptyTitleSubmission()">Test Empty Title (Trigger 400)</button>
+            </div>
+          </form>
+
+          <!-- Task List -->
+          <div class="tasks-container">
+            <div class="task-header-row">
+              <h4>Tasks List (<span id="task-count">0</span>)</h4>
+              <button class="btn btn-outline btn-sm" onclick="fetchTasks()">Refresh</button>
+            </div>
+            <div id="tasks-list" class="tasks-list">
+              <p class="placeholder-text">Please login to view and manage protected tasks.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Interactive Middleware Testing & Diagnostics Console -->
+        <section class="card" id="testing-console-section">
+          <h3>Middleware Pipeline Diagnostics & Testing</h3>
+          <p class="console-desc">Test the backend middleware behaviors directly to verify status codes and responses:</p>
+          <div class="test-button-group">
+            <button class="btn btn-test" onclick="runPipelineTest('valid-request')">1. Valid Token (/api/tasks) [200 OK]</button>
+            <button class="btn btn-test" onclick="runPipelineTest('no-token')">2. Missing Token [401 Unauthorized]</button>
+            <button class="btn btn-test" onclick="runPipelineTest('invalid-token')">3. Invalid/Tampered Token [401 Unauthorized]</button>
+            <button class="btn btn-test" onclick="runPipelineTest('invalid-input')">4. Validation Rejection (Empty Title) [400 Bad Request]</button>
+            <button class="btn btn-test" onclick="runPipelineTest('user-me')">5. Get Current User (/api/auth/me) [200 OK]</button>
+          </div>
+
+          <div class="console-output-box">
+            <div class="console-header">
+              <span>HTTP Request / Response Log:</span>
+              <button class="clear-btn" onclick="clearConsole()">Clear</button>
+            </div>
+            <pre id="console-output">// Diagnostic logs will appear here upon running tests...</pre>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>Advance Web Development Framework (ITUE301) | Practical 7 | <strong>Daksh Karangiya (24CS038)</strong> | Academic Year: 2026-27</p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
